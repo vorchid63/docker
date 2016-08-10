@@ -208,7 +208,7 @@ func get(name string) (*Plugin, error) {
 	if ok {
 		return pl, pl.activate()
 	}
-	logrus.Debugf("load plugin %s", name)	
+	logrus.Debugf("load plugin %s", name)
 	return load(name)
 }
 

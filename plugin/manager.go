@@ -192,7 +192,7 @@ func FindWithCapability(capability string) ([]Plugin, error) {
 		}
 	}
 	if handleLegacy {
-		logrus.Debugf("VLU-FindWithCapablity:find plugins with capabilith=%d", capability)		
+		logrus.Debugf("VLU-FindWithCapablity:find plugins with capabilith=%d", capability)
 		pl, err := plugins.GetAll(capability)
 		if err != nil {
 			return nil, fmt.Errorf("legacy plugin: %v", err)
