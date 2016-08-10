@@ -222,6 +222,7 @@ func (daemon *Daemon) restore() error {
 		}(c)
 	}
 	wg.Wait()
+	logrus.Debugf("VLU init libnetwork network controller, activeSanboxes=%d", activeSandboxes)
 	daemon.netController, err = daemon.initNetworkController(daemon.configStore, activeSandboxes)
 	if err != nil {
 		return fmt.Errorf("Error initializing network controller: %v", err)

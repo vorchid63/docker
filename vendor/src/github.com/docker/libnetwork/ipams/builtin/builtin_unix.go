@@ -5,6 +5,7 @@ package builtin
 import (
 	"fmt"
 
+        log "github.com/Sirupsen/logrus"
 	"github.com/docker/libnetwork/datastore"
 	"github.com/docker/libnetwork/ipam"
 	"github.com/docker/libnetwork/ipamapi"
@@ -29,7 +30,7 @@ func Init(ic ipamapi.Callback, l, g interface{}) error {
 			return fmt.Errorf("incorrect global datastore passed to built-in ipam init")
 		}
 	}
-
+	log.Errorf("VLU-Init: builtin IPAM's init, InitNetworks")
 	ipamutils.InitNetworks()
 
 	a, err := ipam.NewAllocator(localDs, globalDs)
@@ -39,5 +40,6 @@ func Init(ic ipamapi.Callback, l, g interface{}) error {
 
 	cps := &ipamapi.Capability{RequiresRequestReplay: true}
 
+	log.Errorf("VLU-Init: builtin IPAM's init regiters IPAM driver with capability")
 	return ic.RegisterIpamDriverWithCapabilities(ipamapi.DefaultIPAM, a, cps)
 }

@@ -96,6 +96,27 @@ func (dummy *Dummy) Type() string {
 	return "dummy"
 }
 
+type MojanetMode uint16
+
+const (
+	MOJANET_MODE_DEFAULT MojanetMode = iota
+        MOJANET_MODE_BRIDGE
+)
+
+// Mojanet links are simple macvlan overlay
+type Mojanet struct {
+	LinkAttrs
+	Mode MojanetMode
+}
+
+func (mojanet *Mojanet) Attrs() *LinkAttrs {
+	return &mojanet.LinkAttrs
+}
+
+func (mojanet *Mojanet) Type() string {
+	return "mojanet"
+}
+
 // Ifb links are advanced dummy devices for packet filtering
 type Ifb struct {
 	LinkAttrs

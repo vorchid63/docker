@@ -139,6 +139,8 @@ func makeDefaultScopes() map[string]*ScopeCfg {
 		},
 	}
 
+	log.Printf("VLU-makeDefaultScopes: datastore make default scodes=LocalScope provider=%#v address=%#v",
+		   def[LocalScope].Client.Provider, defaultPrefix + "/local-kv.db")
 	return def
 }
 
@@ -188,6 +190,7 @@ func ParseKey(key string) ([]string, error) {
 // newClient used to connect to KV Store
 func newClient(scope string, kv string, addr string, config *store.Config, cached bool) (DataStore, error) {
 
+	log.Printf("VLU-newClient: datastore scope=%s kv=%s addr=%s ", scope, kv, addr)
 	if cached && scope != LocalScope {
 		return nil, fmt.Errorf("caching supported only for scope %s", LocalScope)
 	}
@@ -216,6 +219,7 @@ func newClient(scope string, kv string, addr string, config *store.Config, cache
 		}
 	}
 
+	log.Printf("VLU-newClient: datastore create NewStore scope_backend=%s kv=%s addr=%s ", store.Backend(kv), kv, addr)
 	store, err := libkv.NewStore(store.Backend(kv), addrs, config)
 	if err != nil {
 		return nil, err
@@ -231,6 +235,7 @@ func newClient(scope string, kv string, addr string, config *store.Config, cache
 
 // NewDataStore creates a new instance of LibKV data store
 func NewDataStore(scope string, cfg *ScopeCfg) (DataStore, error) {
+	log.Printf("VLU-newDataStore: datastore scope kv=%s ", scope)
 	if cfg == nil || cfg.Client.Provider == "" || cfg.Client.Address == "" {
 		c, ok := defaultScopes[scope]
 		if !ok || c.Client.Provider == "" || c.Client.Address == "" {
@@ -245,6 +250,8 @@ func NewDataStore(scope string, cfg *ScopeCfg) (DataStore, error) {
 		cached = true
 	}
 
+	log.Printf("VLU-newDataStore: datastore create new client scope=%s provider=%s address=%#v config=%#v cached=%#v",
+                    scope,  cfg.Client.Provider, cfg.Client.Address, cfg.Client.Config, cached)
 	return newClient(scope, cfg.Client.Provider, cfg.Client.Address, cfg.Client.Config, cached)
 }
 
@@ -254,7 +261,8 @@ func NewDataStoreFromConfig(dsc discoverapi.DatastoreConfigData) (DataStore, err
 		ok    bool
 		sCfgP *store.Config
 	)
-
+	log.Printf("VLU-NewDataStoreFromConfig: datastore create datastore scope=%s provider=%s address=%#v",
+		   dsc.Scope, dsc.Provider, dsc.Address)
 	sCfgP, ok = dsc.Config.(*store.Config)
 	if !ok && dsc.Config != nil {
 		return nil, fmt.Errorf("cannot parse store configuration: %v", dsc.Config)

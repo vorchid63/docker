@@ -55,6 +55,7 @@ func (s *Discovery) Initialize(uris string, heartbeat time.Duration, ttl time.Du
 		err   error
 	)
 
+	logrus.Errorf("VLU-Initialize: uris=%s ", uris)
 	// A custom prefix to the path can be optionally used.
 	if len(parts) == 2 {
 		s.prefix = parts[1]
@@ -98,6 +99,7 @@ func (s *Discovery) Initialize(uris string, heartbeat time.Duration, ttl time.Du
 
 	// Creates a new store, will ignore options given
 	// if not supported by the chosen store
+	logrus.Errorf("VLU-Initialize: kv create new store s.backend=%s addr=%s", s.backend, addrs)
 	s.store, err = libkv.NewStore(s.backend, addrs, config)
 	return err
 }

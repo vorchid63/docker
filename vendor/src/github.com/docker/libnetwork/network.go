@@ -312,6 +312,7 @@ func (i *IpamInfo) CopyTo(dstI *IpamInfo) error {
 }
 
 func (n *network) CopyTo(o datastore.KVObject) error {
+     	log.Errorf("VLU-CopyTo: libnet network copy network data to key store, network=%s", n.name)
 	n.Lock()
 	defer n.Unlock()
 
@@ -664,6 +665,7 @@ func (n *network) resolveDriver(name string, load bool) (driverapi.Driver, *driv
 
 	// Check if a driver for the specified network type is available
 	d, cap := c.drvRegistry.Driver(name)
+	log.Errorf("VLU-resolveDriver: network is name in driver registry %#v", d)
 	if d == nil {
 		if load {
 			var err error
@@ -1137,6 +1139,7 @@ func (n *network) getController() *controller {
 }
 
 func (n *network) ipamAllocate() error {
+        log.Errorf("VLU-ipamAllocate: network locate IPAM driver type = %s", n.ipamType)
 	if n.hasSpecialDriver() {
 		return nil
 	}
@@ -1146,12 +1149,14 @@ func (n *network) ipamAllocate() error {
 		return err
 	}
 
+        log.Errorf("VLU-ipamAllocate: network found IPAM driver type = %s", n.ipamType)
 	if n.addrSpace == "" {
 		if n.addrSpace, err = n.deriveAddressSpace(); err != nil {
 			return err
 		}
 	}
 
+        log.Errorf("VLU-ipamAllocate: network derived address space = %s", n.addrSpace)
 	err = n.ipamAllocateVersion(4, ipam)
 	if err != nil {
 		return err
@@ -1177,6 +1182,13 @@ func (n *network) ipamAllocate() error {
 
 func (n *network) requestPoolHelper(ipam ipamapi.Ipam, addressSpace, preferredPool, subPool string, options map[string]string, v6 bool) (string, *net.IPNet, map[string]string, error) {
 	for {
+		var scope string;
+		if n.Scope() == datastore.GlobalScope {
+		   scope = "global"
+		} else {
+		   scope = "local"
+                }
+	        log.Errorf("VLU-requestPoolHelper: network calling ipam's RequestPool [%s %s %s %s]", addressSpace, preferredPool, subPool, scope)
 		poolID, pool, meta, err := ipam.RequestPool(addressSpace, preferredPool, subPool, options, v6)
 		if err != nil {
 			return "", nil, nil, err
@@ -1223,6 +1235,7 @@ func (n *network) ipamAllocateVersion(ipVer int, ipam ipamapi.Ipam) error {
 		err      error
 	)
 
+	log.Errorf("VLU-ipamAllocateVersion: network ipam version %d",ipVer)
 	switch ipVer {
 	case 4:
 		cfgList = &n.ipamV4Config
@@ -1244,6 +1257,7 @@ func (n *network) ipamAllocateVersion(ipVer int, ipam ipamapi.Ipam) error {
 	*infoList = make([]*IpamInfo, len(*cfgList))
 
 	log.Debugf("Allocating IPv%d pools for network %s (%s)", ipVer, n.Name(), n.ID())
+	log.Debugf("VLU-ipamAllocateVersion: network Allocating IPv%d pools for network %s (%s)", ipVer, n.Name(), n.ID())
 
 	for i, cfg := range *cfgList {
 		if err = cfg.Validate(); err != nil {

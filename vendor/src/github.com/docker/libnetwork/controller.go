@@ -171,29 +171,34 @@ func New(cfgOptions ...config.Option) (NetworkController, error) {
 		agentInitDone:   make(chan struct{}),
 	}
 
+	log.Errorf("VLU-New: controller init store")
 	if err := c.initStores(); err != nil {
 		return nil, err
 	}
 
+	log.Errorf("VLU-New: controller create driver registry, driver notify function:RedisterDriver, ipma nodify function:NUL")
 	drvRegistry, err := drvregistry.New(c.getStore(datastore.LocalScope), c.getStore(datastore.GlobalScope), c.RegisterDriver, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Errorf("VLU-New: controller get driver initializer")
 	for _, i := range getInitializers() {
 		var dcfg map[string]interface{}
-
+		log.Errorf("VLU-New: --------------------------")
 		// External plugins don't need config passed through daemon. They can
 		// bootstrap themselves
 		if i.ntype != "remote" {
 			dcfg = c.makeDriverConfig(i.ntype)
 		}
 
+		log.Errorf("VLU-New: controller add driver %s to driver registry", i.ntype)
 		if err := drvRegistry.AddDriver(i.ntype, i.fn, dcfg); err != nil {
 			return nil, err
 		}
 	}
 
+	log.Errorf("VLU-New: controller: init IPAM")
 	if err = initIPAMDrivers(drvRegistry, nil, c.getStore(datastore.GlobalScope)); err != nil {
 		return nil, err
 	}
@@ -208,11 +213,13 @@ func New(cfgOptions ...config.Option) (NetworkController, error) {
 		}
 	}
 
+	log.Errorf("VLU-New: controller walk netowrks")
 	c.WalkNetworks(populateSpecial)
 
 	// Reserve pools first before doing cleanup. Otherwise the
 	// cleanups of endpoint/network and sandbox below will
 	// generate many unnecessary warnings
+	log.Errorf("VLU-New: reserve pools")
 	c.reservePools()
 
 	// Cleanup resources
@@ -316,16 +323,21 @@ func (c *controller) makeDriverConfig(ntype string) map[string]interface{} {
 	config := make(map[string]interface{})
 
 	for _, label := range c.cfg.Daemon.Labels {
+	        log.Errorf("VLU-makeDriverConfig: controller make driver config, label=%s key=%#v", netlabel.DriverPrefix+"."+ntype, netlabel.Key(label))
 		if !strings.HasPrefix(netlabel.Key(label), netlabel.DriverPrefix+"."+ntype) {
 			continue
 		}
-
+		log.Errorf("VLU-makeDriverConfig: controller make driver config, label match")
 		config[netlabel.Key(label)] = netlabel.Value(label)
 	}
 
 	drvCfg, ok := c.cfg.Daemon.DriverCfg[ntype]
+	log.Errorf("VLU-makeDriverConfig: controller get driver %s config from daemon %#v", ntype, ok)	
 	if ok {
 		for k, v := range drvCfg.(map[string]interface{}) {
+	      	       if ntype == "mojanet"		{
+		       	  log.Errorf("VLU-makeDriverConfig: controller moja init  config[%s]=%s", k, v)
+		       	}
 			config[k] = v
 		}
 	}
@@ -498,16 +510,20 @@ func (c *controller) pushNodeDiscovery(d driverapi.Driver, cap driverapi.Capabil
 		self = net.ParseIP(addr[0])
 	}
 
+	log.Errorf("VLU-pushNodeDiscovery: controller driver=%s host ip discovery %s", d.Type(), self)
 	if d == nil || cap.DataScope != datastore.GlobalScope || nodes == nil {
 		return
 	}
 
 	for _, node := range nodes {
+	       log.Errorf("VLU-pushNodeDiscovery: controller driver=%s node discovery %s", d.Type(), node.String())
 		nodeData := discoverapi.NodeDiscoveryData{Address: node.String(), Self: node.Equal(self)}
 		var err error
 		if add {
+			log.Errorf("VLU-pushNodeDiscovery: controller host add node event to a cluster %s", node.String())
 			err = d.DiscoverNew(discoverapi.NodeDiscovery, nodeData)
 		} else {
+			log.Errorf("VLU-pushNodeDiscovery: controller host delete node event to a cluster %s", node.String())
 			err = d.DiscoverDelete(discoverapi.NodeDiscovery, nodeData)
 		}
 		if err != nil {
@@ -552,10 +568,12 @@ func (c *controller) RegisterDriver(networkType string, driver driverapi.Driver,
 	hd := c.discovery
 	c.Unlock()
 
+	log.Errorf("VLU-RegisterDriver: controller discovery = %s", driver.Type())
 	if hd != nil {
 		c.pushNodeDiscovery(driver, capability, hd.Fetch(), true)
 	}
 
+	log.Errorf("VLU-RegisterDriver: controller notify agent in driver %s", driver.Type())
 	c.agentDriverNotify(driver)
 	return nil
 }
@@ -563,6 +581,7 @@ func (c *controller) RegisterDriver(networkType string, driver driverapi.Driver,
 // NewNetwork creates a new network of the specified network type. The options
 // are network specific and modeled in a generic way.
 func (c *controller) NewNetwork(networkType, name string, id string, options ...NetworkOption) (Network, error) {
+        log.Errorf("VLU-NewNetwork: controller create new network = %s",name)
 	if !config.IsValidName(name) {
 		return nil, ErrInvalidName(name)
 	}
@@ -571,6 +590,7 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 		id = stringid.GenerateRandomID()
 	}
 
+        log.Errorf("VLU-NewNetwork: controller create new network = %s id=%d",name, id)
 	// Construct the network object
 	network := &network{
 		name:        name,
@@ -583,8 +603,10 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 		drvOnce:     &sync.Once{},
 	}
 
+        log.Errorf("VLU-NewNetwork: controller process new network=%s options",name)
 	network.processOptions(options...)
 
+        log.Errorf("VLU-NewNetwork: controller resolve network type=%s options",networkType)
 	_, cap, err := network.resolveDriver(networkType, true)
 	if err != nil {
 		return nil, err
@@ -593,6 +615,7 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 	if cap.DataScope == datastore.GlobalScope && !c.isDistributedControl() && !network.dynamic {
 		if c.isManager() {
 			// For non-distributed controlled environment, globalscoped non-dynamic networks are redirected to Manager
+        		log.Errorf("VLU-NewNetwork: controller manager redirect for globalscoped non-dynamic networks")	
 			return nil, ManagerRedirectError(name)
 		}
 
@@ -605,6 +628,8 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 		return nil, err
 	}
 
+	log.Errorf("VLU-NewNetwork: controller calling nework=%s type=%s ipamAllocate", network.name, network.networkType)	
+
 	err = network.ipamAllocate()
 	if err != nil {
 		return nil, err
@@ -615,6 +640,7 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 		}
 	}()
 
+	log.Errorf("VLU-NewNetwork: controller now adding nework=%s", name)	
 	err = c.addNetwork(network)
 	if err != nil {
 		return nil, err
@@ -630,7 +656,9 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 	// First store the endpoint count, then the network. To avoid to
 	// end up with a datastore containing a network and not an epCnt,
 	// in case of an ungraceful shutdown during this function call.
+	log.Errorf("VLU-NewNetwork: controller create endpoint attached to nework=%s", network.name)
 	epCnt := &endpointCnt{n: network}
+	log.Errorf("VLU-NewNetwork: controller update endpoint to store")
 	if err = c.updateToStore(epCnt); err != nil {
 		return nil, err
 	}
@@ -642,11 +670,13 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 		}
 	}()
 
+	log.Errorf("VLU-NewNetwork: controller update endpoint's network to store")
 	network.epCnt = epCnt
 	if err = c.updateToStore(network); err != nil {
 		return nil, err
 	}
 
+	log.Errorf("VLU-NewNetwork: controller join network with cluster")
 	joinCluster(network)
 
 	return network, nil
@@ -654,20 +684,24 @@ func (c *controller) NewNetwork(networkType, name string, id string, options ...
 
 var joinCluster NetworkWalker = func(nw Network) bool {
 	n := nw.(*network)
+	log.Errorf("VLU-NetworkWalkter of joinCluster: controller calls network's joinCluster, network=%s type=%s", n.name, n.networkType)
 	if err := n.joinCluster(); err != nil {
 		log.Errorf("Failed to join network %s (%s) into agent cluster: %v", n.Name(), n.ID(), err)
 	}
+	log.Errorf("VLU-NetworkWalkter of joinCluster: controller calls network's addDriverWatches, network=%s type=%s", n.name, n.networkType)
 	n.addDriverWatches()
 	return false
 }
 
 func (c *controller) reservePools() {
+        log.Errorf("VLU-reservePools: controller retrieve networks for local scope")
 	networks, err := c.getNetworksForScope(datastore.LocalScope)
 	if err != nil {
 		log.Warnf("Could not retrieve networks from local store during ipam allocation for existing networks: %v", err)
 		return
 	}
 
+        log.Errorf("VLU-reservePools: controller loop through retrived networks")
 	for _, n := range networks {
 		if !doReplayPoolReserve(n) {
 			continue
@@ -682,36 +716,45 @@ func (c *controller) reservePools() {
 			n.ipamV6Config = []*IpamConf{{PreferredPool: n.ipamV6Info[0].Pool.String()}}
 		}
 		// Account current network gateways
-		for i, c := range n.ipamV4Config {
-			if c.Gateway == "" && n.ipamV4Info[i].Gateway != nil {
+		for i, c := range n.ipamV4Config { 
+		  	if c.Gateway == "" && n.ipamV4Info[i].Gateway != nil {
 				c.Gateway = n.ipamV4Info[i].Gateway.IP.String()
 			}
+		        log.Errorf("VLU-reservePools: controller read gateway %s from network=%s ipamV4Info[%d]", c.Gateway, n.name, i)
 		}
 		for i, c := range n.ipamV6Config {
 			if c.Gateway == "" && n.ipamV6Info[i].Gateway != nil {
 				c.Gateway = n.ipamV6Info[i].Gateway.IP.String()
 			}
+		        log.Errorf("VLU-reservePools: read gateway %s from network=%s ipamV6Info[%d]", c.Gateway, n.name, i)
 		}
 		// Reserve pools
 		if err := n.ipamAllocate(); err != nil {
 			log.Warnf("Failed to allocate ipam pool(s) for network %q (%s): %v", n.Name(), n.ID(), err)
 		}
+		log.Errorf("VLU-reservePools: allocate ipam pool(s) for network %q (%s)", n.Name(), n.ID())
 		// Reserve existing endpoints' addresses
 		ipam, _, err := n.getController().getIPAMDriver(n.ipamType)
 		if err != nil {
 			log.Warnf("Failed to retrieve ipam driver for network %q (%s) during address reservation", n.Name(), n.ID())
 			continue
 		}
+		log.Errorf("VLU-reservePools: retrieve ipam driver for network %q (%s) during address reservation", n.Name(), n.ID())
+
 		epl, err := n.getEndpointsFromStore()
 		if err != nil {
 			log.Warnf("Failed to retrieve list of current endpoints on network %q (%s)", n.Name(), n.ID())
 			continue
 		}
+		log.Errorf("VLU-reservePools: retrieve list of current endpoints on network %q (%s)", n.Name(), n.ID())
 		for _, ep := range epl {
 			if err := ep.assignAddress(ipam, true, ep.Iface().AddressIPv6() != nil); err != nil {
 				log.Warnf("Failed to reserve current adress for endpoint %q (%s) on network %q (%s)",
 					ep.Name(), ep.ID(), n.Name(), n.ID())
 			}
+			
+		    log.Errorf("VLU-reservePools: assign IP address for endpoint %q (%s) on network %q (%s)",
+					ep.Name(), ep.ID(), n.Name(), n.ID())
 		}
 	}
 }

@@ -32,6 +32,11 @@ var macvlanModes = [...]uint32{
 	nl.MACVLAN_MODE_SOURCE,
 }
 
+var mojanetModes = [...]uint16{
+        0,
+	nl.MOJANET_MODE_BRIDGE,
+ }
+
 func ensureIndex(link *LinkAttrs) {
 	if link != nil && link.Index == 0 {
 		newlink, _ := LinkByName(link.Name)
@@ -620,6 +625,8 @@ func (h *Handle) LinkAdd(link Link) error {
 		req.AddData(data)
 	} else if link.Type() == "ipvlan" {
 		return fmt.Errorf("Can't create ipvlan link without ParentIndex")
+	} else if link.Type() == "mojanet" {
+		return fmt.Errorf("Can't create mojanet link without ParentIndex")
 	}
 
 	nameData := nl.NewRtAttr(syscall.IFLA_IFNAME, nl.ZeroTerminated(base.Name))
@@ -688,7 +695,11 @@ func (h *Handle) LinkAdd(link Link) error {
 		}
 	} else if gretap, ok := link.(*Gretap); ok {
 		addGretapAttrs(gretap, linkInfo)
-	}
+	} else if _, ok := link.(*Mojanet); ok { 
+                // mojanet only supports bridge mode for now
+		data := nl.NewRtAttrChild(linkInfo, nl.IFLA_INFO_DATA, nil)
+		nl.NewRtAttrChild(data, nl.IFLA_MOJANET_MODE, nl.Uint16Attr(uint16(mojanetModes[MOJANET_MODE_BRIDGE])))
+		}
 
 	req.AddData(linkInfo)
 
@@ -908,6 +919,8 @@ func linkDeserialize(m []byte) (Link, error) {
 						link = &Macvtap{}
 					case "gretap":
 						link = &Gretap{}
+					case "mojanet":
+					        link = &Mojanet{}
 					default:
 						link = &GenericLink{LinkType: linkType}
 					}
@@ -931,6 +944,8 @@ func linkDeserialize(m []byte) (Link, error) {
 						parseMacvtapData(link, data)
 					case "gretap":
 						parseGretapData(link, data)
+					case "mojanet":
+						parseMojanetData(link, data)
 					}
 				}
 			}
@@ -1266,6 +1281,19 @@ func parseMacvlanData(link Link, data []syscall.NetlinkRouteAttr) {
 				macv.Mode = MACVLAN_MODE_PASSTHRU
 			case nl.MACVLAN_MODE_SOURCE:
 				macv.Mode = MACVLAN_MODE_SOURCE
+			}
+			return
+		}
+	}
+}
+
+func parseMojanetData(link Link, data []syscall.NetlinkRouteAttr) {
+	mojav := link.(*Mojanet)
+	for _, datum := range data {
+		if datum.Attr.Type == nl.IFLA_IPVLAN_MODE {
+			switch native.Uint32(datum.Value[0:4]) {
+			case nl.MOJANET_MODE_BRIDGE:
+				mojav.Mode = MOJANET_MODE_BRIDGE
 			}
 			return
 		}

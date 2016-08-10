@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/libnetwork/driverapi"
 	"github.com/docker/libnetwork/ipamapi"
 	"github.com/docker/libnetwork/types"
@@ -151,6 +152,7 @@ func (r *DrvRegistry) IPAMDefaultAddressSpaces(name string) (string, string, err
 
 // RegisterDriver registers the network driver when it gets discovered.
 func (r *DrvRegistry) RegisterDriver(ntype string, driver driverapi.Driver, capability driverapi.Capability) error {
+        log.Errorf("VLU-RegisterDriver: driver register registers driver %s when it is discovered", ntype)
 	if strings.TrimSpace(ntype) == "" {
 		return fmt.Errorf("network type string cannot be empty")
 	}
@@ -163,6 +165,7 @@ func (r *DrvRegistry) RegisterDriver(ntype string, driver driverapi.Driver, capa
 		return driverapi.ErrActiveRegistration(ntype)
 	}
 
+        log.Errorf("VLU-RegisterDriver: driver register registers notifies driver %s if notify function exists", ntype)
 	if r.dfn != nil {
 		if err := r.dfn(ntype, driver, capability); err != nil {
 			return err
@@ -179,6 +182,7 @@ func (r *DrvRegistry) RegisterDriver(ntype string, driver driverapi.Driver, capa
 }
 
 func (r *DrvRegistry) registerIpamDriver(name string, driver ipamapi.Ipam, caps *ipamapi.Capability) error {
+        log.Errorf("VLU-registerIpamDriver: driver register registers driver %s", name)
 	if strings.TrimSpace(name) == "" {
 		return fmt.Errorf("ipam driver name string cannot be empty")
 	}
@@ -190,17 +194,20 @@ func (r *DrvRegistry) registerIpamDriver(name string, driver ipamapi.Ipam, caps 
 		return types.ForbiddenErrorf("ipam driver %q already registered", name)
 	}
 
+        log.Errorf("VLU-registerIpamDriver: get driver=%s default address spaces", name)
 	locAS, glbAS, err := driver.GetDefaultAddressSpaces()
 	if err != nil {
 		return types.InternalErrorf("ipam driver %q failed to return default address spaces: %v", name, err)
 	}
 
+        log.Errorf("VLU-registerIpamDriver: driver register ipam notify function %s, if present %d", name, r.ifn)
 	if r.ifn != nil {
 		if err := r.ifn(name, driver, caps); err != nil {
 			return err
 		}
 	}
 
+        log.Errorf("VLU-registerDriver: add iapm driver in registry table")
 	r.Lock()
 	r.ipamDrivers[name] = &ipamData{driver: driver, defaultLocalAddressSpace: locAS, defaultGlobalAddressSpace: glbAS, capability: caps}
 	r.Unlock()
@@ -210,10 +217,12 @@ func (r *DrvRegistry) registerIpamDriver(name string, driver ipamapi.Ipam, caps 
 
 // RegisterIpamDriver registers the IPAM driver discovered with default capabilities.
 func (r *DrvRegistry) RegisterIpamDriver(name string, driver ipamapi.Ipam) error {
+        log.Errorf("VLU-RegisterIpamDriver: drvregistry calling driver registry's registerIpamDriver to register %s with default capabilities", name)
 	return r.registerIpamDriver(name, driver, &ipamapi.Capability{})
 }
 
 // RegisterIpamDriverWithCapabilities registers the IPAM driver discovered with specified capabilities.
 func (r *DrvRegistry) RegisterIpamDriverWithCapabilities(name string, driver ipamapi.Ipam, caps *ipamapi.Capability) error {
+        log.Errorf("VLU-RegisterDriver: calling driver registry's registerIpamDriver to register %s with capabilities", name)
 	return r.registerIpamDriver(name, driver, caps)
 }

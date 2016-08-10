@@ -187,6 +187,7 @@ func (daemon *Daemon) SetNetworkBootstrapKeys(keys []*networktypes.EncryptionKey
 
 // CreateManagedNetwork creates an agent network.
 func (daemon *Daemon) CreateManagedNetwork(create clustertypes.NetworkCreateRequest) error {
+     	logrus.Errorf("VLU-CreateManagedNewtork: daemon create managed network")
 	_, err := daemon.createNetwork(create.NetworkCreateRequest, create.ID, true)
 	return err
 }
@@ -201,14 +202,17 @@ func (daemon *Daemon) CreateNetwork(create types.NetworkCreateRequest) (*types.N
 }
 
 func (daemon *Daemon) createNetwork(create types.NetworkCreateRequest, id string, agent bool) (*types.NetworkCreateResponse, error) {
+     	logrus.Errorf("VLU-createNewtork: daemon create managed network name=%s id=%s", create.Name, id)
 	// If there is a pending ingress network creation wait here
 	// since ingress network creation can happen via node download
 	// from manager or task download.
 	if isIngressNetwork(create.Name) {
+   	        logrus.Errorf("VLU-createNewtork: network name=%s is ingress network", create.Name)
 		defer ingressWait()()
 	}
-
+     
 	if runconfig.IsPreDefinedNetwork(create.Name) && !agent {
+                logrus.Errorf("VLU-createNewtork: daemon network name=%s is predefined network and there is no agent", create.Name)
 		err := fmt.Errorf("%s is a pre-defined network and cannot be created", create.Name)
 		return nil, errors.NewRequestForbiddenError(err)
 	}
@@ -220,6 +224,7 @@ func (daemon *Daemon) createNetwork(create types.NetworkCreateRequest, id string
 			return nil, err
 		}
 	}
+        logrus.Errorf("VLU-createNewtork: daemon got network name=%s by name", create.Name)
 	if nw != nil {
 		if create.CheckDuplicate {
 			return nil, libnetwork.NetworkNameError(create.Name)
@@ -230,6 +235,7 @@ func (daemon *Daemon) createNetwork(create types.NetworkCreateRequest, id string
 	c := daemon.netController
 	driver := create.Driver
 	if driver == "" {
+                logrus.Errorf("VLU-createNewtork: daemon using defaul driver for network name=%s", create.Name)
 		driver = c.Config().Daemon.DefaultDriver
 	}
 
@@ -238,6 +244,7 @@ func (daemon *Daemon) createNetwork(create types.NetworkCreateRequest, id string
 	if err != nil {
 		return nil, err
 	}
+        logrus.Errorf("VLU-createNewtork: daemon got IPAM config for network name=%s", create.Name)
 
 	nwOptions := []libnetwork.NetworkOption{
 		libnetwork.NetworkOptionIpam(ipam.Driver, "", v4Conf, v6Conf, ipam.Options),
@@ -246,17 +253,21 @@ func (daemon *Daemon) createNetwork(create types.NetworkCreateRequest, id string
 		libnetwork.NetworkOptionLabels(create.Labels),
 	}
 	if create.Internal {
+                logrus.Errorf("VLU-createNewtork: daemon create network option for internal network for network name=%s", create.Name)
 		nwOptions = append(nwOptions, libnetwork.NetworkOptionInternalNetwork())
 	}
 	if agent {
+                logrus.Errorf("VLU-createNewtork: daemon create network option for dynamic and persist network for network name=%s", create.Name)
 		nwOptions = append(nwOptions, libnetwork.NetworkOptionDynamic())
 		nwOptions = append(nwOptions, libnetwork.NetworkOptionPersist(false))
 	}
 
 	if isIngressNetwork(create.Name) {
+                logrus.Errorf("VLU-createNewtork: daemon create network option for ingress network for network name=%s", create.Name)
 		nwOptions = append(nwOptions, libnetwork.NetworkOptionIngress())
 	}
 
+        logrus.Errorf("VLU-createNewtork: daemon create network %s driver=%s", create.Name, driver)
 	n, err := c.NewNetwork(driver, create.Name, id, nwOptions...)
 	if err != nil {
 		return nil, err

@@ -366,7 +366,7 @@ func (c *controller) agentDriverNotify(d driverapi.Driver) {
 	if c.agent == nil {
 		return
 	}
-
+	logrus.Errorf(" VLU-agentDriverNotify: agent driver %s discover new Node", d.Type())
 	d.DiscoverNew(discoverapi.NodeDiscovery, discoverapi.NodeDiscoveryData{
 		Address:     c.agent.advertiseAddr,
 		BindAddress: c.agent.bindAddr,
@@ -379,6 +379,7 @@ func (c *controller) agentDriverNotify(d driverapi.Driver) {
 	drvEnc.Tags = tags
 
 	c.drvRegistry.WalkDrivers(func(name string, driver driverapi.Driver, capability driverapi.Capability) bool {
+                logrus.Errorf(" VLU-agentDriverNotify: walk all drivers %s discover new Node", d.Type())
 		err := driver.DiscoverNew(discoverapi.EncryptionKeysConfig, drvEnc)
 		if err != nil {
 			logrus.Warnf("Failed to set datapath keys in driver %s: %v", name, err)
@@ -521,6 +522,8 @@ func (ep *endpoint) deleteFromCluster() error {
 }
 
 func (n *network) addDriverWatches() {
+   
+	logrus.Errorf("VLU-addDriverWatches: agent alling network=%s type=%s addDriverWatches")
 	if !n.isClusterEligible() {
 		return
 	}

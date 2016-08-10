@@ -296,9 +296,11 @@ func (a *Allocator) parsePoolRequest(addressSpace, pool, subPool string, v6 bool
 	}
 
 	if pool != "" {
+	   	log.Errorf("VLU-parsePoolRequest: ipam allocator paring CIDR pool=%s", pool)
 		if _, nw, err = net.ParseCIDR(pool); err != nil {
 			return nil, nil, nil, false, ipamapi.ErrInvalidPool
 		}
+	   	log.Errorf("VLU-parsePoolRequest: ipam allocator get AddressRange for subpool=%s", subPool)
 		if subPool != "" {
 			if ipr, err = getAddressRange(subPool, nw); err != nil {
 				return nil, nil, nil, false, err

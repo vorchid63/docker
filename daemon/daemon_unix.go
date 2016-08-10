@@ -635,6 +635,7 @@ func (daemon *Daemon) initNetworkController(config *Config, activeSandboxes map[
 		return nil, err
 	}
 
+	logrus.Debug("VLU NEW libnetwork")
 	controller, err := libnetwork.New(netOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("error obtaining controller instance: %v", err)
@@ -645,6 +646,7 @@ func (daemon *Daemon) initNetworkController(config *Config, activeSandboxes map[
 		return controller, nil
 	}
 
+	logrus.Debug("VLU NEW default NULL network")
 	// Initialize default network on "null"
 	if n, _ := controller.NetworkByName("none"); n == nil {
 		if _, err := controller.NewNetwork("null", "none", "", libnetwork.NetworkOptionPersist(true)); err != nil {
@@ -652,12 +654,14 @@ func (daemon *Daemon) initNetworkController(config *Config, activeSandboxes map[
 		}
 	}
 
+	logrus.Debug("VLU NEW default HOST network")
 	// Initialize default network on "host"
 	if n, _ := controller.NetworkByName("host"); n == nil {
 		if _, err := controller.NewNetwork("host", "host", "", libnetwork.NetworkOptionPersist(true)); err != nil {
 			return nil, fmt.Errorf("Error creating default \"host\" network: %v", err)
 		}
 	}
+	logrus.Debug("VLU NEW default BRIDGE network, bridge disabled ? %d", config.DisableBridge)
 	if !config.DisableBridge {
 		// Initialize default driver "bridge"
 		if err := initBridgeDriver(controller, config); err != nil {

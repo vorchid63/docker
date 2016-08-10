@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+        log "github.com/Sirupsen/logrus"
 	"github.com/docker/libnetwork/discoverapi"
 	"github.com/docker/libnetwork/ipamapi"
 	"github.com/docker/libnetwork/types"
@@ -67,5 +68,6 @@ func (a *allocator) DiscoverDelete(dType discoverapi.DiscoveryType, data interfa
 
 // Init registers a remote ipam when its plugin is activated
 func Init(ic ipamapi.Callback, l, g interface{}) error {
+        log.Errorf("VLU-Init: init NULL IPAM drivers, calling ipam's callback RegisterIpamDriver")
 	return ic.RegisterIpamDriver(ipamapi.NullIPAM, &allocator{})
 }

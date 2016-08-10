@@ -62,6 +62,7 @@ func (c *controller) getStore(scope string) datastore.DataStore {
 	c.Lock()
 	defer c.Unlock()
 
+	log.Errorf("VLU-getStore: store get Store of scope %s", scope)
 	for _, store := range c.stores {
 		if store.Scope() == scope {
 			return store
@@ -112,6 +113,8 @@ func (c *controller) getNetworksForScope(scope string) ([]*network, error) {
 		return nil, nil
 	}
 
+	log.Errorf("VLU-getNetworksForScope: Store got store of scope %s", scope)
+	log.Errorf("VLU-getNetworksForScope: Store get netowrk of key=%s from store of scope %s", datastore.NetworkKeyPrefix, scope)
 	kvol, err := store.List(datastore.Key(datastore.NetworkKeyPrefix),
 		&network{ctrlr: c})
 	if err != nil && err != datastore.ErrKeyNotFound {

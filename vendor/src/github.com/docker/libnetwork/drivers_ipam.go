@@ -1,7 +1,8 @@
 package libnetwork
 
 import (
-	"github.com/docker/libnetwork/drvregistry"
+        log "github.com/Sirupsen/logrus"
+       	"github.com/docker/libnetwork/drvregistry"
 	"github.com/docker/libnetwork/ipamapi"
 	builtinIpam "github.com/docker/libnetwork/ipams/builtin"
 	nullIpam "github.com/docker/libnetwork/ipams/null"
@@ -14,6 +15,8 @@ func initIPAMDrivers(r *drvregistry.DrvRegistry, lDs, gDs interface{}) error {
 		remoteIpam.Init,
 		nullIpam.Init,
 	} {
+		log.Errorf("VLU-initIPAMDrivers: ===========================================================")
+                log.Errorf("VLU-initIPAMDrivers: controller's init IPAM drivers for builtin, remote and Null")
 		if err := fn(r, lDs, gDs); err != nil {
 			return err
 		}
