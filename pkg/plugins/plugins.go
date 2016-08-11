@@ -191,7 +191,7 @@ func loadWithRetry(name string, retry bool) (*Plugin, error) {
 		storage.plugins[name] = pl
 		storage.Unlock()
 
-		logrus.Errorf("VLU-loadWIthRetry: discovery Plugin %s activate", p)
+		logrus.Errorf("VLU-loadWIthRetry: discovery Plugin %s activate", name)
 		err = pl.activate()
 
 		if err != nil {
