@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/Sirupsen/logrus"
 )
 
 var (
@@ -23,6 +25,7 @@ var (
 type localRegistry struct{}
 
 func newLocalRegistry() localRegistry {
+	logrus.Errorf("VLU-newLocalRegistry: calling localRegistry")
 	return localRegistry{}
 }
 
@@ -60,10 +63,13 @@ func Scan() ([]string, error) {
 
 // Plugin returns the plugin registered with the given name (or returns an error).
 func (l *localRegistry) Plugin(name string) (*Plugin, error) {
+	logrus.Errorf("VLU-Plugin: discovery Plugin %s, socket path =%s", name, socketsPath)
 	socketpaths := pluginPaths(socketsPath, name, ".sock")
 
 	for _, p := range socketpaths {
+	    logrus.Errorf("VLU-Plugin: discovery Plugin %s, socket path found  =%s", name, p)
 		if fi, err := os.Stat(p); err == nil && fi.Mode()&os.ModeSocket != 0 {
+			logrus.Errorf("VLU-Plugin: discovery a local plugin %s addr=%s", name,"unix://"+p)
 			return NewLocalPlugin(name, "unix://"+p), nil
 		}
 	}
@@ -71,7 +77,9 @@ func (l *localRegistry) Plugin(name string) (*Plugin, error) {
 	var txtspecpaths []string
 	for _, p := range specsPaths {
 		txtspecpaths = append(txtspecpaths, pluginPaths(p, name, ".spec")...)
+		logrus.Errorf("VLU-Plugin: discovery specpath %s", txtspecpaths)
 		txtspecpaths = append(txtspecpaths, pluginPaths(p, name, ".json")...)
+		logrus.Errorf("VLU-Plugin: discovery jsonpath %s", txtspecpaths)
 	}
 
 	for _, p := range txtspecpaths {

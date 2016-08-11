@@ -164,6 +164,8 @@ func load(name string) (*Plugin, error) {
 }
 
 func loadWithRetry(name string, retry bool) (*Plugin, error) {
+       
+	logrus.Errorf("VLU-loadWithRetry: load plugins %s", name)
 	registry := newLocalRegistry()
 	start := time.Now()
 
@@ -189,6 +191,7 @@ func loadWithRetry(name string, retry bool) (*Plugin, error) {
 		storage.plugins[name] = pl
 		storage.Unlock()
 
+		logrus.Errorf("VLU-loadWIthRetry: discovery Plugin %s activate", p)
 		err = pl.activate()
 
 		if err != nil {
