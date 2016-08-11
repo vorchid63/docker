@@ -212,15 +212,18 @@ func get(name string) (*Plugin, error) {
 		return pl, pl.activate()
 	}
 	logrus.Debugf("load plugin %s", name)
+	logrus.Debugf("VLU-get: plugins load plugin %s", name)
 	return load(name)
 }
 
 // Get returns the plugin given the specified name and requested implementation.
 func Get(name, imp string) (*Plugin, error) {
+	logrus.Debugf("VLU-Get: plugins load plugin %s", name)
 	pl, err := get(name)
 	if err != nil {
 		return nil, err
 	}
+	logrus.Debugf("VLU-Get: plugins got plugin %s check what it implements", name)
 	if pl.implements(imp) {
 		logrus.Debugf("%s implements: %s", name, imp)
 		return pl, nil
