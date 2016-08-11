@@ -164,7 +164,7 @@ func load(name string) (*Plugin, error) {
 }
 
 func loadWithRetry(name string, retry bool) (*Plugin, error) {
-       
+
 	logrus.Errorf("VLU-loadWithRetry: load plugins %s", name)
 	registry := newLocalRegistry()
 	start := time.Now()

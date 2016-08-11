@@ -67,9 +67,9 @@ func (l *localRegistry) Plugin(name string) (*Plugin, error) {
 	socketpaths := pluginPaths(socketsPath, name, ".sock")
 
 	for _, p := range socketpaths {
-	    logrus.Errorf("VLU-Plugin: discovery Plugin %s, socket path found  =%s", name, p)
+		logrus.Errorf("VLU-Plugin: discovery Plugin %s, socket path found  =%s", name, p)
 		if fi, err := os.Stat(p); err == nil && fi.Mode()&os.ModeSocket != 0 {
-			logrus.Errorf("VLU-Plugin: discovery a local plugin %s addr=%s", name,"unix://"+p)
+			logrus.Errorf("VLU-Plugin: discovery a local plugin %s addr=%s", name, "unix://"+p)
 			return NewLocalPlugin(name, "unix://"+p), nil
 		}
 	}
